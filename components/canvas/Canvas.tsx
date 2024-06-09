@@ -23,7 +23,7 @@ const Canvas = () => {
   const [tool, setTool] = useState<string>("pencil"); // Default tool
   const [shapes, setShapes] = useState<Shape[]>([]); // Array to store shapes
   const lineWidth = 2; // Adjust as needed
-  const [lineColor, setLineColor] = useState("#000000"); // Adjust as needed
+  const [lineColor, setLineColor] = useState("#FFFFFF"); // Adjust as needed
 
   useEffect(() => {
     const canvas = canvasRef.current;
