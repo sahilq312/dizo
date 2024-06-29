@@ -18,7 +18,7 @@ type Shape = {
 const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
-  const [startPoint, setStartPoint] = useState<Point | null>(null);
+  const [startPoint, setStartPoint] = useState<Point | null>({x:0,y:0});
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null);
   const [tool, setTool] = useState<string>("pencil"); // Default tool
   const [shapes, setShapes] = useState<Shape[]>([]); // Array to store shapes
