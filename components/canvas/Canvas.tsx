@@ -1,4 +1,5 @@
 "use client";
+import { socket } from "@/lib/socket";
 import Image from "next/image";
 import React, { useRef, useState, useEffect } from "react";
 
@@ -18,7 +19,7 @@ type Shape = {
 const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
-  const [startPoint, setStartPoint] = useState<Point | null>({x:0,y:0});
+  const [startPoint, setStartPoint] = useState<Point | null>(null);
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null);
   const [tool, setTool] = useState<string>("pencil"); // Default tool
   const [shapes, setShapes] = useState<Shape[]>([]); // Array to store shapes
@@ -37,13 +38,21 @@ const Canvas = () => {
       ctx.lineWidth = lineWidth;
 
       if (shape.tool === "rectangle") {
-        drawRectangle(ctx, shape.startPoint!, shape.endPoint!);
+        if (shape.startPoint && shape.endPoint) {
+          drawRectangle(ctx, shape.startPoint, shape.endPoint);
+        }
       } else if (shape.tool === "line") {
-        drawLine(ctx, shape.startPoint!, shape.endPoint!);
+        if (shape.startPoint && shape.endPoint) {
+          drawLine(ctx, shape.startPoint, shape.endPoint);
+        }
       } else if (shape.tool === "circle") {
-        drawCircle(ctx, shape.startPoint!, shape.endPoint!);
+        if (shape.startPoint && shape.endPoint) {
+          drawCircle(ctx, shape.startPoint, shape.endPoint);
+        }
       } else if (shape.tool === "pencil") {
-        drawPencil(ctx, shape.points!);
+        if (shape.points) {
+          drawPencil(ctx, shape.points);
+        }
       }
     };
 
@@ -113,7 +122,10 @@ const Canvas = () => {
       if (tool === "pencil") {
         setShapes((prevShapes) => {
           const updatedShapes = [...prevShapes];
-          updatedShapes[updatedShapes.length - 1].points!.push(current);
+          const lastShape = updatedShapes[updatedShapes.length - 1];
+          if (lastShape && lastShape.points) {
+            lastShape.points.push(current);
+          }
           return updatedShapes;
         });
       }
@@ -128,7 +140,10 @@ const Canvas = () => {
         } else if (tool === "circle" && startPoint) {
           drawCircle(ctx, startPoint, current);
         } else if (tool === "pencil" && shapes.length > 0) {
-          drawPencil(ctx, shapes[shapes.length - 1].points!);
+          const lastShape = shapes[shapes.length - 1];
+          if (lastShape && lastShape.points) {
+            drawPencil(ctx, lastShape.points);
+          }
         }
       }
     };
@@ -208,7 +223,14 @@ const Canvas = () => {
             alt="eraser"
           />
         </button>
-        <button onClick={() => setTool("text")}><Image src={"https://img.icons8.com/plasticine/100/document.png"} width={50} height={50} alt="text" /></button>
+        <button onClick={() => setTool("text")}>
+          <Image
+            src={"https://img.icons8.com/plasticine/100/document.png"}
+            width={50}
+            height={50}
+            alt="text"
+          />
+        </button>
       </div>
       <div className="absolute bg-slate-700 flex top-6 left-8 list-none gap-5 h-10 items-center p-3 rounded-xl">
         <input
