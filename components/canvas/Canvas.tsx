@@ -1,5 +1,4 @@
 "use client";
-import { socket } from "@/lib/socket";
 import Image from "next/image";
 import React, { useRef, useState, useEffect } from "react";
 
