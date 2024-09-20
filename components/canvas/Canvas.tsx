@@ -1,6 +1,9 @@
 "use client";
 import Image from "next/image";
 import React, { useRef, useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Slider } from "@/components/ui/slider";
 
 type Point = {
   x: number;
@@ -13,6 +16,7 @@ type Shape = {
   endPoint?: Point;
   points?: Point[];
   color: string;
+  lineWidth: number;
 };
 
 const Canvas = () => {
@@ -24,7 +28,7 @@ const Canvas = () => {
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [undoStack, setUndoStack] = useState<Shape[][]>([]);
   const [redoStack, setRedoStack] = useState<Shape[][]>([]);
-  const lineWidth = 2;
+  const [lineWidth, setLineWidth] = useState(2);
   const [lineColor, setLineColor] = useState("#FFFFFF");
 
   useEffect(() => {
@@ -36,7 +40,7 @@ const Canvas = () => {
 
     const drawShape = (shape: Shape) => {
       ctx.strokeStyle = shape.color;
-      ctx.lineWidth = lineWidth;
+      ctx.lineWidth = shape.lineWidth;
 
       if (shape.tool === "rectangle") {
         if (shape.startPoint && shape.endPoint) {
@@ -111,7 +115,7 @@ const Canvas = () => {
         setShapes((prevShapes) => {
           const newShapes = [
             ...prevShapes,
-            { tool, points: [start], color: lineColor },
+            { tool, points: [start], color: lineColor, lineWidth },
           ];
           setUndoStack((prevUndoStack) => [...prevUndoStack, prevShapes]);
           setRedoStack([]);
@@ -165,6 +169,7 @@ const Canvas = () => {
               startPoint,
               endPoint: currentPoint,
               color: lineColor,
+              lineWidth,
             },
           ];
           setUndoStack((prevUndoStack) => [...prevUndoStack, prevShapes]);
@@ -185,7 +190,7 @@ const Canvas = () => {
       canvas.removeEventListener("mousemove", handleMouseMove);
       canvas.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isDrawing, startPoint, currentPoint, tool, shapes, lineColor]);
+  }, [isDrawing, startPoint, currentPoint, tool, shapes, lineColor, lineWidth]);
 
   const handleClearCanvas = () => {
     const canvas = canvasRef.current;
@@ -206,43 +211,7 @@ const Canvas = () => {
     setUndoStack((prevUndoStack) => prevUndoStack.slice(0, -1));
     setRedoStack((prevRedoStack) => [...prevRedoStack, shapes]);
     setShapes(prevShapes);
-
-    // Redraw canvas
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    prevShapes.forEach((shape) => {
-      ctx.strokeStyle = shape.color;
-      ctx.lineWidth = lineWidth;
-      if (shape.tool === "rectangle" && shape.startPoint && shape.endPoint) {
-        const width = shape.endPoint.x - shape.startPoint.x;
-        const height = shape.endPoint.y - shape.startPoint.y;
-        ctx.beginPath();
-        ctx.rect(shape.startPoint.x, shape.startPoint.y, width, height);
-        ctx.stroke();
-      } else if (shape.tool === "line" && shape.startPoint && shape.endPoint) {
-        ctx.beginPath();
-        ctx.moveTo(shape.startPoint.x, shape.startPoint.y);
-        ctx.lineTo(shape.endPoint.x, shape.endPoint.y);
-        ctx.stroke();
-      } else if (shape.tool === "circle" && shape.startPoint && shape.endPoint) {
-        const radius = Math.sqrt(
-          Math.pow(shape.endPoint.x - shape.startPoint.x, 2) + Math.pow(shape.endPoint.y - shape.startPoint.y, 2)
-        );
-        ctx.beginPath();
-        ctx.arc(shape.startPoint.x, shape.startPoint.y, radius, 0, 2 * Math.PI);
-        ctx.stroke();
-      } else if (shape.tool === "pencil" && shape.points) {
-        ctx.beginPath();
-        ctx.moveTo(shape.points[0].x, shape.points[0].y);
-        for (let i = 1; i < shape.points.length; i++) {
-          ctx.lineTo(shape.points[i].x, shape.points[i].y);
-        }
-        ctx.stroke();
-      }
-    });
+    redrawCanvas(prevShapes);
   };
 
   const handleRedo = () => {
@@ -251,16 +220,18 @@ const Canvas = () => {
     setRedoStack((prevRedoStack) => prevRedoStack.slice(0, -1));
     setUndoStack((prevUndoStack) => [...prevUndoStack, shapes]);
     setShapes(nextShapes);
+    redrawCanvas(nextShapes);
+  };
 
-    // Redraw canvas
+  const redrawCanvas = (shapesToDraw: Shape[]) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    nextShapes.forEach((shape) => {
+    shapesToDraw.forEach((shape) => {
       ctx.strokeStyle = shape.color;
-      ctx.lineWidth = lineWidth;
+      ctx.lineWidth = shape.lineWidth;
       if (shape.tool === "rectangle" && shape.startPoint && shape.endPoint) {
         const width = shape.endPoint.x - shape.startPoint.x;
         const height = shape.endPoint.y - shape.startPoint.y;
@@ -292,70 +263,94 @@ const Canvas = () => {
 
   return (
     <main className="flex relative justify-center items-center overflow-hidden max-h-screen">
-      <div className="absolute bg-slate-700 flex top-6 list-none gap-5 h-10 items-center p-3 rounded-xl">
-        <button onClick={() => setTool("pencil")}>
+      <div className="absolute bg-slate-800/80 backdrop-blur-sm flex top-6 list-none gap-5 h-16 items-center p-3 rounded-xl shadow-lg">
+        <Button variant="outline" className="w-12 h-12 p-0" onClick={() => setTool("pencil")}>
           <Image
             src={"https://img.icons8.com/plasticine/100/pencil.png"}
-            width={50}
-            height={50}
+            width={40}
+            height={40}
             alt="pencil"
           />
-        </button>
-        <button onClick={() => setTool("rectangle")}>
+        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="w-12 h-12 p-0">
+              <Image
+                src={"https://img.icons8.com/plasticine/100/line-width.png"}
+                width={40}
+                height={40}
+                alt="line width"
+              />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80">
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <h4 className="font-medium leading-none">Line Width</h4>
+                <Slider
+                  min={1}
+                  max={20}
+                  step={1}
+                  value={[lineWidth]}
+                  onValueChange={(value) => setLineWidth(value[0])}
+                />
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+        <Button variant="outline" className="w-12 h-12 p-0" onClick={() => setTool("rectangle")}>
           <Image
-            src={
-              "https://img.icons8.com/carbon-copy/100/picture-in-picture.png"
-            }
-            width={50}
-            height={50}
+            src={"https://img.icons8.com/carbon-copy/100/picture-in-picture.png"}
+            width={40}
+            height={40}
             alt="rectangle"
           />
-        </button>
-        <button onClick={() => setTool("line")}>
+        </Button>
+        <Button variant="outline" className="w-12 h-12 p-0" onClick={() => setTool("line")}>
           <Image
             src={"https://img.icons8.com/carbon-copy/100/horizontal-line.png"}
-            width={50}
-            height={50}
+            width={40}
+            height={40}
             alt="line"
           />
-        </button>
-        <button onClick={() => setTool("circle")}>
+        </Button>
+        <Button variant="outline" className="w-12 h-12 p-0" onClick={() => setTool("circle")}>
           <Image
             src={"https://img.icons8.com/plasticine/100/unchecked-circle.png"}
-            width={50}
-            height={50}
+            width={40}
+            height={40}
             alt="circle"
           />
-        </button>
-        <button onClick={handleClearCanvas}>
+        </Button>
+        <Button variant="outline" className="w-12 h-12 p-0" onClick={handleClearCanvas}>
           <Image
             src={"https://img.icons8.com/plasticine/100/delete-sign.png"}
-            width={50}
-            height={50}
+            width={40}
+            height={40}
             alt="clear canvas"
           />
-        </button>
-        <button onClick={handleUndo}>
+        </Button>
+        <Button variant="outline" className="w-12 h-12 p-0" onClick={handleUndo}>
           <Image
             src={"https://img.icons8.com/plasticine/100/undo.png"}
-            width={50}
-            height={50}
+            width={40}
+            height={40}
             alt="undo"
           />
-        </button>
-        <button onClick={handleRedo}>
+        </Button>
+        <Button variant="outline" className="w-12 h-12 p-0" onClick={handleRedo}>
           <Image
             src={"https://img.icons8.com/plasticine/100/redo.png"}
-            width={50}
-            height={50}
+            width={40}
+            height={40}
             alt="redo"
           />
-        </button>
+        </Button>
       </div>
-      <div className="absolute bg-slate-700 flex top-6 left-8 list-none gap-5 h-10 items-center p-3 rounded-xl">
+      <div className="absolute bg-slate-800/80 backdrop-blur-sm flex top-6 left-8 list-none gap-5 h-16 items-center p-3 rounded-xl shadow-lg">
         <input
           type="color"
-          className="w-10 h-10 bg-transparent rounded-xl"
+          className="w-12 h-12 bg-transparent rounded-xl cursor-pointer"
           onChange={(e) => setLineColor(e.target.value)}
         />
       </div>
@@ -363,7 +358,7 @@ const Canvas = () => {
         ref={canvasRef}
         width={window.innerWidth}
         height={window.innerHeight}
-        style={{ backgroundColor: "transparent" }}
+        className="bg-transparent cursor-crosshair"
       ></canvas>
     </main>
   );
