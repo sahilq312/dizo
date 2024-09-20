@@ -20,20 +20,22 @@ const Canvas = () => {
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
   const [startPoint, setStartPoint] = useState<Point | null>(null);
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null);
-  const [tool, setTool] = useState<string>("pencil"); // Default tool
-  const [shapes, setShapes] = useState<Shape[]>([]); // Array to store shapes
-  const lineWidth = 2; // Adjust as needed
-  const [lineColor, setLineColor] = useState("#FFFFFF"); // Adjust as needed
+  const [tool, setTool] = useState<string>("pencil");
+  const [shapes, setShapes] = useState<Shape[]>([]);
+  const [undoStack, setUndoStack] = useState<Shape[][]>([]);
+  const [redoStack, setRedoStack] = useState<Shape[][]>([]);
+  const lineWidth = 2;
+  const [lineColor, setLineColor] = useState("#FFFFFF");
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return; // Handle null case for canvas reference
+    if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
-    if (!ctx) return; // Handle null case for canvas context
+    if (!ctx) return;
 
     const drawShape = (shape: Shape) => {
-      ctx.strokeStyle = shape.color; // Set the color for each shape
+      ctx.strokeStyle = shape.color;
       ctx.lineWidth = lineWidth;
 
       if (shape.tool === "rectangle") {
@@ -106,10 +108,15 @@ const Canvas = () => {
       setStartPoint(start);
 
       if (tool === "pencil") {
-        setShapes((prevShapes) => [
-          ...prevShapes,
-          { tool, points: [start], color: lineColor },
-        ]);
+        setShapes((prevShapes) => {
+          const newShapes = [
+            ...prevShapes,
+            { tool, points: [start], color: lineColor },
+          ];
+          setUndoStack((prevUndoStack) => [...prevUndoStack, prevShapes]);
+          setRedoStack([]);
+          return newShapes;
+        });
       }
     };
 
@@ -129,20 +136,18 @@ const Canvas = () => {
         });
       }
 
-      if (ctx) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        shapes.forEach((shape) => drawShape(shape));
-        if (tool === "rectangle" && startPoint) {
-          drawRectangle(ctx, startPoint, current);
-        } else if (tool === "line" && startPoint) {
-          drawLine(ctx, startPoint, current);
-        } else if (tool === "circle" && startPoint) {
-          drawCircle(ctx, startPoint, current);
-        } else if (tool === "pencil" && shapes.length > 0) {
-          const lastShape = shapes[shapes.length - 1];
-          if (lastShape && lastShape.points) {
-            drawPencil(ctx, lastShape.points);
-          }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      shapes.forEach((shape) => drawShape(shape));
+      if (tool === "rectangle" && startPoint) {
+        drawRectangle(ctx, startPoint, current);
+      } else if (tool === "line" && startPoint) {
+        drawLine(ctx, startPoint, current);
+      } else if (tool === "circle" && startPoint) {
+        drawCircle(ctx, startPoint, current);
+      } else if (tool === "pencil" && shapes.length > 0) {
+        const lastShape = shapes[shapes.length - 1];
+        if (lastShape && lastShape.points) {
+          drawPencil(ctx, lastShape.points);
         }
       }
     };
@@ -151,16 +156,21 @@ const Canvas = () => {
       if (!isDrawing) return;
       setIsDrawing(false);
 
-      if (tool !== "pencil") {
-        setShapes((prevShapes) => [
-          ...prevShapes,
-          {
-            tool,
-            startPoint: startPoint!,
-            endPoint: currentPoint!,
-            color: lineColor,
-          },
-        ]);
+      if (tool !== "pencil" && startPoint && currentPoint) {
+        setShapes((prevShapes) => {
+          const newShapes = [
+            ...prevShapes,
+            {
+              tool,
+              startPoint,
+              endPoint: currentPoint,
+              color: lineColor,
+            },
+          ];
+          setUndoStack((prevUndoStack) => [...prevUndoStack, prevShapes]);
+          setRedoStack([]);
+          return newShapes;
+        });
       }
       setStartPoint(null);
       setCurrentPoint(null);
@@ -176,6 +186,109 @@ const Canvas = () => {
       canvas.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isDrawing, startPoint, currentPoint, tool, shapes, lineColor]);
+
+  const handleClearCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setUndoStack((prevUndoStack) => [...prevUndoStack, shapes]);
+    setRedoStack([]);
+    setShapes([]);
+  };
+
+  const handleUndo = () => {
+    if (undoStack.length === 0) return;
+    const prevShapes = undoStack[undoStack.length - 1];
+    setUndoStack((prevUndoStack) => prevUndoStack.slice(0, -1));
+    setRedoStack((prevRedoStack) => [...prevRedoStack, shapes]);
+    setShapes(prevShapes);
+
+    // Redraw canvas
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    prevShapes.forEach((shape) => {
+      ctx.strokeStyle = shape.color;
+      ctx.lineWidth = lineWidth;
+      if (shape.tool === "rectangle" && shape.startPoint && shape.endPoint) {
+        const width = shape.endPoint.x - shape.startPoint.x;
+        const height = shape.endPoint.y - shape.startPoint.y;
+        ctx.beginPath();
+        ctx.rect(shape.startPoint.x, shape.startPoint.y, width, height);
+        ctx.stroke();
+      } else if (shape.tool === "line" && shape.startPoint && shape.endPoint) {
+        ctx.beginPath();
+        ctx.moveTo(shape.startPoint.x, shape.startPoint.y);
+        ctx.lineTo(shape.endPoint.x, shape.endPoint.y);
+        ctx.stroke();
+      } else if (shape.tool === "circle" && shape.startPoint && shape.endPoint) {
+        const radius = Math.sqrt(
+          Math.pow(shape.endPoint.x - shape.startPoint.x, 2) + Math.pow(shape.endPoint.y - shape.startPoint.y, 2)
+        );
+        ctx.beginPath();
+        ctx.arc(shape.startPoint.x, shape.startPoint.y, radius, 0, 2 * Math.PI);
+        ctx.stroke();
+      } else if (shape.tool === "pencil" && shape.points) {
+        ctx.beginPath();
+        ctx.moveTo(shape.points[0].x, shape.points[0].y);
+        for (let i = 1; i < shape.points.length; i++) {
+          ctx.lineTo(shape.points[i].x, shape.points[i].y);
+        }
+        ctx.stroke();
+      }
+    });
+  };
+
+  const handleRedo = () => {
+    if (redoStack.length === 0) return;
+    const nextShapes = redoStack[redoStack.length - 1];
+    setRedoStack((prevRedoStack) => prevRedoStack.slice(0, -1));
+    setUndoStack((prevUndoStack) => [...prevUndoStack, shapes]);
+    setShapes(nextShapes);
+
+    // Redraw canvas
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    nextShapes.forEach((shape) => {
+      ctx.strokeStyle = shape.color;
+      ctx.lineWidth = lineWidth;
+      if (shape.tool === "rectangle" && shape.startPoint && shape.endPoint) {
+        const width = shape.endPoint.x - shape.startPoint.x;
+        const height = shape.endPoint.y - shape.startPoint.y;
+        ctx.beginPath();
+        ctx.rect(shape.startPoint.x, shape.startPoint.y, width, height);
+        ctx.stroke();
+      } else if (shape.tool === "line" && shape.startPoint && shape.endPoint) {
+        ctx.beginPath();
+        ctx.moveTo(shape.startPoint.x, shape.startPoint.y);
+        ctx.lineTo(shape.endPoint.x, shape.endPoint.y);
+        ctx.stroke();
+      } else if (shape.tool === "circle" && shape.startPoint && shape.endPoint) {
+        const radius = Math.sqrt(
+          Math.pow(shape.endPoint.x - shape.startPoint.x, 2) + Math.pow(shape.endPoint.y - shape.startPoint.y, 2)
+        );
+        ctx.beginPath();
+        ctx.arc(shape.startPoint.x, shape.startPoint.y, radius, 0, 2 * Math.PI);
+        ctx.stroke();
+      } else if (shape.tool === "pencil" && shape.points) {
+        ctx.beginPath();
+        ctx.moveTo(shape.points[0].x, shape.points[0].y);
+        for (let i = 1; i < shape.points.length; i++) {
+          ctx.lineTo(shape.points[i].x, shape.points[i].y);
+        }
+        ctx.stroke();
+      }
+    });
+  };
 
   return (
     <main className="flex relative justify-center items-center overflow-hidden max-h-screen">
@@ -214,20 +327,28 @@ const Canvas = () => {
             alt="circle"
           />
         </button>
-        <button onClick={() => {}}>
+        <button onClick={handleClearCanvas}>
           <Image
             src={"https://img.icons8.com/plasticine/100/delete-sign.png"}
             width={50}
             height={50}
-            alt="eraser"
+            alt="clear canvas"
           />
         </button>
-        <button onClick={() => setTool("text")}>
+        <button onClick={handleUndo}>
           <Image
-            src={"https://img.icons8.com/plasticine/100/document.png"}
+            src={"https://img.icons8.com/plasticine/100/undo.png"}
             width={50}
             height={50}
-            alt="text"
+            alt="undo"
+          />
+        </button>
+        <button onClick={handleRedo}>
+          <Image
+            src={"https://img.icons8.com/plasticine/100/redo.png"}
+            width={50}
+            height={50}
+            alt="redo"
           />
         </button>
       </div>
@@ -240,8 +361,8 @@ const Canvas = () => {
       </div>
       <canvas
         ref={canvasRef}
-        width="2000"
-        height="2000"
+        width={window.innerWidth}
+        height={window.innerHeight}
         style={{ backgroundColor: "transparent" }}
       ></canvas>
     </main>
