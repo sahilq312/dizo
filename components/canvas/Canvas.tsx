@@ -30,6 +30,21 @@ const Canvas = () => {
   const [redoStack, setRedoStack] = useState<Shape[][]>([]);
   const [lineWidth, setLineWidth] = useState(2);
   const [lineColor, setLineColor] = useState("#FFFFFF");
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const updateCanvasSize = () => {
+      setCanvasSize({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
+
+    updateCanvasSize();
+    window.addEventListener('resize', updateCanvasSize);
+
+    return () => window.removeEventListener('resize', updateCanvasSize);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -356,8 +371,8 @@ const Canvas = () => {
       </div>
       <canvas
         ref={canvasRef}
-        width={window.innerWidth}
-        height={window.innerHeight}
+        width={canvasSize.width}
+        height={canvasSize.height}
         className="bg-transparent cursor-crosshair"
       ></canvas>
     </main>
