@@ -31,6 +31,7 @@ const Canvas = () => {
   const [lineWidth, setLineWidth] = useState(2);
   const [lineColor, setLineColor] = useState("#FFFFFF");
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const updateCanvasSize = () => {
@@ -38,6 +39,7 @@ const Canvas = () => {
         width: window.innerWidth,
         height: window.innerHeight
       });
+      setIsMobile(window.innerWidth < 768);
     };
 
     updateCanvasSize();
@@ -121,9 +123,12 @@ const Canvas = () => {
       ctx.stroke();
     };
 
-    const handleMouseDown = (e: MouseEvent) => {
+    const handleMouseDown = (e: MouseEvent | TouchEvent) => {
       setIsDrawing(true);
-      const start = { x: e.offsetX, y: e.offsetY };
+      const rect = canvas.getBoundingClientRect();
+      const x = ('touches' in e) ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+      const y = ('touches' in e) ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+      const start = { x, y };
       setStartPoint(start);
 
       if (tool === "pencil") {
@@ -139,9 +144,12 @@ const Canvas = () => {
       }
     };
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (e: MouseEvent | TouchEvent) => {
       if (!isDrawing) return;
-      const current = { x: e.offsetX, y: e.offsetY };
+      const rect = canvas.getBoundingClientRect();
+      const x = ('touches' in e) ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+      const y = ('touches' in e) ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+      const current = { x, y };
       setCurrentPoint(current);
 
       if (tool === "pencil") {
@@ -199,11 +207,17 @@ const Canvas = () => {
     canvas.addEventListener("mousedown", handleMouseDown);
     canvas.addEventListener("mousemove", handleMouseMove);
     canvas.addEventListener("mouseup", handleMouseUp);
+    canvas.addEventListener("touchstart", handleMouseDown);
+    canvas.addEventListener("touchmove", handleMouseMove);
+    canvas.addEventListener("touchend", handleMouseUp);
 
     return () => {
       canvas.removeEventListener("mousedown", handleMouseDown);
       canvas.removeEventListener("mousemove", handleMouseMove);
       canvas.removeEventListener("mouseup", handleMouseUp);
+      canvas.removeEventListener("touchstart", handleMouseDown);
+      canvas.removeEventListener("touchmove", handleMouseMove);
+      canvas.removeEventListener("touchend", handleMouseUp);
     };
   }, [isDrawing, startPoint, currentPoint, tool, shapes, lineColor, lineWidth]);
 
@@ -278,22 +292,22 @@ const Canvas = () => {
 
   return (
     <main className="flex relative justify-center items-center overflow-hidden max-h-screen">
-      <div className="absolute bg-slate-800/80 backdrop-blur-sm flex top-6 list-none gap-5 h-16 items-center p-3 rounded-xl shadow-lg">
-        <Button variant="outline" className="w-12 h-12 p-0" onClick={() => setTool("pencil")}>
+      <div className={`absolute bg-slate-800/80 backdrop-blur-sm flex ${isMobile ? 'bottom-6 left-1/2 transform -translate-x-1/2' : 'top-6'} list-none gap-2 md:gap-5 h-16 items-center p-3 rounded-xl shadow-lg flex-wrap justify-center`}>
+        <Button variant="outline" className="w-10 h-10 md:w-12 md:h-12 p-0" onClick={() => setTool("pencil")}>
           <Image
             src={"https://img.icons8.com/plasticine/100/pencil.png"}
-            width={40}
-            height={40}
+            width={32}
+            height={32}
             alt="pencil"
           />
         </Button>
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="w-12 h-12 p-0">
+            <Button variant="outline" className="w-10 h-10 md:w-12 md:h-12 p-0">
               <Image
                 src={"https://img.icons8.com/plasticine/100/line-width.png"}
-                width={40}
-                height={40}
+                width={32}
+                height={32}
                 alt="line width"
               />
             </Button>
@@ -313,59 +327,59 @@ const Canvas = () => {
             </div>
           </PopoverContent>
         </Popover>
-        <Button variant="outline" className="w-12 h-12 p-0" onClick={() => setTool("rectangle")}>
+        <Button variant="outline" className="w-10 h-10 md:w-12 md:h-12 p-0" onClick={() => setTool("rectangle")}>
           <Image
             src={"https://img.icons8.com/carbon-copy/100/picture-in-picture.png"}
-            width={40}
-            height={40}
+            width={32}
+            height={32}
             alt="rectangle"
           />
         </Button>
-        <Button variant="outline" className="w-12 h-12 p-0" onClick={() => setTool("line")}>
+        <Button variant="outline" className="w-10 h-10 md:w-12 md:h-12 p-0" onClick={() => setTool("line")}>
           <Image
             src={"https://img.icons8.com/carbon-copy/100/horizontal-line.png"}
-            width={40}
-            height={40}
+            width={32}
+            height={32}
             alt="line"
           />
         </Button>
-        <Button variant="outline" className="w-12 h-12 p-0" onClick={() => setTool("circle")}>
+        <Button variant="outline" className="w-10 h-10 md:w-12 md:h-12 p-0" onClick={() => setTool("circle")}>
           <Image
             src={"https://img.icons8.com/plasticine/100/unchecked-circle.png"}
-            width={40}
-            height={40}
+            width={32}
+            height={32}
             alt="circle"
           />
         </Button>
-        <Button variant="outline" className="w-12 h-12 p-0" onClick={handleClearCanvas}>
+        <Button variant="outline" className="w-10 h-10 md:w-12 md:h-12 p-0" onClick={handleClearCanvas}>
           <Image
             src={"https://img.icons8.com/plasticine/100/delete-sign.png"}
-            width={40}
-            height={40}
+            width={32}
+            height={32}
             alt="clear canvas"
           />
         </Button>
-        <Button variant="outline" className="w-12 h-12 p-0" onClick={handleUndo}>
+        <Button variant="outline" className="w-10 h-10 md:w-12 md:h-12 p-0" onClick={handleUndo}>
           <Image
             src={"https://img.icons8.com/plasticine/100/undo.png"}
-            width={40}
-            height={40}
+            width={32}
+            height={32}
             alt="undo"
           />
         </Button>
-        <Button variant="outline" className="w-12 h-12 p-0" onClick={handleRedo}>
+        <Button variant="outline" className="w-10 h-10 md:w-12 md:h-12 p-0" onClick={handleRedo}>
           <Image
             src={"https://img.icons8.com/plasticine/100/redo.png"}
-            width={40}
-            height={40}
+            width={32}
+            height={32}
             alt="redo"
           />
         </Button>
       </div>
-      <div className="absolute bg-slate-800/80 backdrop-blur-sm flex top-6 left-8 list-none gap-5 h-16 items-center p-3 rounded-xl shadow-lg">
+      <div className={`absolute bg-slate-800/80 backdrop-blur-sm flex ${isMobile ? 'top-6 left-1/2 transform -translate-x-1/2' : 'top-6 left-8'} list-none gap-5 h-16 items-center p-3 rounded-xl shadow-lg`}>
         <input
           type="color"
-          className="w-12 h-12 bg-transparent rounded-xl cursor-pointer"
+          className="w-10 h-10 md:w-12 md:h-12 bg-transparent rounded-xl cursor-pointer"
           onChange={(e) => setLineColor(e.target.value)}
         />
       </div>
@@ -373,7 +387,7 @@ const Canvas = () => {
         ref={canvasRef}
         width={canvasSize.width}
         height={canvasSize.height}
-        className="bg-transparent cursor-crosshair"
+        className="bg-transparent cursor-crosshair touch-none"
       ></canvas>
     </main>
   );
