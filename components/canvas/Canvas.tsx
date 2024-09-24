@@ -4,6 +4,9 @@ import React, { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
+import { BorderWidthIcon, HamburgerMenuIcon, LineHeightIcon, Pencil1Icon, WidthIcon } from "@radix-ui/react-icons";
+import { Circle, Eraser, Pencil, PenLine, RectangleEllipsis, Redo2, Undo, Undo2 } from "lucide-react";
+import { ModeToggle } from "../ui/toggle";
 
 type Point = {
   x: number;
@@ -292,24 +295,17 @@ const Canvas = () => {
 
   return (
     <main className="flex relative justify-center items-center overflow-hidden max-h-screen">
-      <div className={`absolute bg-slate-800/80 backdrop-blur-sm flex ${isMobile ? 'bottom-6 left-1/2 transform -translate-x-1/2' : 'top-6'} list-none gap-2 md:gap-5 h-16 items-center p-3 rounded-xl shadow-lg flex-wrap justify-center`}>
+      <div className={`absolute  backdrop-blur-sm flex ${isMobile ? 'bottom-6 left-1/2 transform -translate-x-1/2' : 'top-6'} list-none gap-2 md:gap-5 h-16 items-center p-3 rounded-xl mb-10 shadow-lg flex-wrap justify-center`}>
         <Button variant="outline" className="w-10 h-10 md:w-12 md:h-12 p-0" onClick={() => setTool("pencil")}>
-          <Image
-            src={"https://img.icons8.com/plasticine/100/pencil.png"}
-            width={32}
-            height={32}
-            alt="pencil"
-          />
+          
+          <Pencil/>
         </Button>
+        <ModeToggle/>
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className="w-10 h-10 md:w-12 md:h-12 p-0">
-              <Image
-                src={"https://img.icons8.com/plasticine/100/line-width.png"}
-                width={32}
-                height={32}
-                alt="line width"
-              />
+              
+              <BorderWidthIcon/>
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-80">
@@ -328,52 +324,28 @@ const Canvas = () => {
           </PopoverContent>
         </Popover>
         <Button variant="outline" className="w-10 h-10 md:w-12 md:h-12 p-0" onClick={() => setTool("rectangle")}>
-          <Image
-            src={"https://img.icons8.com/carbon-copy/100/picture-in-picture.png"}
-            width={32}
-            height={32}
-            alt="rectangle"
-          />
+          
+          <RectangleEllipsis/>
         </Button>
         <Button variant="outline" className="w-10 h-10 md:w-12 md:h-12 p-0" onClick={() => setTool("line")}>
-          <Image
-            src={"https://img.icons8.com/carbon-copy/100/horizontal-line.png"}
-            width={32}
-            height={32}
-            alt="line"
-          />
+          
+          <PenLine/>
         </Button>
         <Button variant="outline" className="w-10 h-10 md:w-12 md:h-12 p-0" onClick={() => setTool("circle")}>
-          <Image
-            src={"https://img.icons8.com/plasticine/100/unchecked-circle.png"}
-            width={32}
-            height={32}
-            alt="circle"
-          />
+          
+          <Circle/>
         </Button>
         <Button variant="outline" className="w-10 h-10 md:w-12 md:h-12 p-0" onClick={handleClearCanvas}>
-          <Image
-            src={"https://img.icons8.com/plasticine/100/delete-sign.png"}
-            width={32}
-            height={32}
-            alt="clear canvas"
-          />
+         
+          <Eraser/>
         </Button>
         <Button variant="outline" className="w-10 h-10 md:w-12 md:h-12 p-0" onClick={handleUndo}>
-          <Image
-            src={"https://img.icons8.com/plasticine/100/undo.png"}
-            width={32}
-            height={32}
-            alt="undo"
-          />
+          
+          <Undo2/>
         </Button>
         <Button variant="outline" className="w-10 h-10 md:w-12 md:h-12 p-0" onClick={handleRedo}>
-          <Image
-            src={"https://img.icons8.com/plasticine/100/redo.png"}
-            width={32}
-            height={32}
-            alt="redo"
-          />
+          
+          <Redo2/>
         </Button>
       </div>
       <div className={`absolute bg-slate-800/80 backdrop-blur-sm flex ${isMobile ? 'top-6 left-1/2 transform -translate-x-1/2' : 'top-6 left-8'} list-none gap-5 h-16 items-center p-3 rounded-xl shadow-lg`}>
@@ -383,6 +355,7 @@ const Canvas = () => {
           onChange={(e) => setLineColor(e.target.value)}
         />
       </div>
+      
       <canvas
         ref={canvasRef}
         width={canvasSize.width}
