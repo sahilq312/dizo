@@ -16,7 +16,7 @@ export default function Page() {
           Dizo ✏️
         </p>
         <Button className="bg-gray-500">
-        <Link className=" text-xl" href={"/canvas"}>Lets Draw</Link>
+        <Link className=" text-xl" href={"/dashboard"}>Lets Draw</Link>
         </Button>
       </div>
     </div>

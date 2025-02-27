@@ -4,6 +4,7 @@ import "./globals.css";
 import Page from "@/components/canvas/Canvas";
 import { Analytics } from "@vercel/analytics/react";
 import { ThemeProvider } from "@/components/ui/theme-provider";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,6 +28,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <Toaster />
         </ThemeProvider>
         <Analytics />
       </body>

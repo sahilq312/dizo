@@ -1,10 +1,13 @@
+"use client";
 import Canvas from "@/components/canvas/Canvas";
-import React from "react";
+import React, { Suspense } from "react";
 
 const page = () => {
   return (
     <div className="h-full w-full bg-black  bg-grid-white/[0.03] relative flex items-center justify-center">
-      <Canvas />
+      <Suspense fallback={<div>Loading...</div>}>
+        <Canvas />
+      </Suspense>
     </div>
   );
 };
